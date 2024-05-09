@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <title>Gradio-Lite: Serverless Gradio Running Entirely in Your Browser</title>
+        <meta name="description" content="Gradio-Lite: Serverless Gradio Running Entirely in Your Browser">
+
+        <script type="module" crossorigin src="https://cdn.jsdelivr.net/npm/@gradio/lite/dist/lite.js"></script>
+        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@gradio/lite/dist/lite.css" />
+
+        <style>
+            html, body {
+                margin: 0;
+                padding: 0;
+                height: 100%;
+            }
+        </style>
+<h1 dir="rtl" style="margin: 55px;color: orange;">التّعرّف على الكائنات  باستخدام Gradio-Lite و Transformers (التنفيذ على الجهاز)</h1>
+    </head>
+    <body>
+
+        <gradio-lite>
+            <gradio-file name="app.py" entrypoint>
+import gradio as gr
+from transformers_js_py import pipeline
+from filters import convert
+
+pipe = await pipeline('object-detection', 'Xenova/detr-resnet-50')
+
+async def fn(image):
+	result = await pipe(image)
+	return result
+              
+#demo = gr.Interface.from_pipeline(pipe)
+
+async def predict(image):
+  result = await pipe(image)
+  print(result)
+  result = convert(result)
+  print(result) 
+  return image, result
+
+demo = gr.Interface(
+  fn=predict,
+  inputs=gr.Image(type='pil'),
+  outputs=gr.AnnotatedImage(),
+  title=''
+)
+         
+demo.launch()
+            </gradio-file>
+
+            <gradio-file name="filters.py">
+def convert(input_data):
+    # Initialize the output list
+    result_labels = []
+
+    # Iterate over each item in the input data
+    for item in input_data:
+        # Extract the label
+        label = item['label']
+        
+        # Extract the bounding box coordinates
+        xmin = item['box']['xmin']
+        ymin = item['box']['ymin']
+        xmax = item['box']['xmax']
+        ymax = item['box']['ymax']
+
+        # Convert coordinates into the required output format (list of coordinates)
+        coordinates = [xmin, ymin, xmax, ymax]
+
+        # Append the tuple of coordinates and label to the output list
+        result_labels.append((coordinates, label))
+
+    # Return the output list
+    return result_labels
+
+            </gradio-file>
+
+            <gradio-requirements>
+# Same syntax as requirements.txt
+transformers-js-py            
+            </gradio-requirements>
+        </gradio-lite>
+    </body>
+</html>
